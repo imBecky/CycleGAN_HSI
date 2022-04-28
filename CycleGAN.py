@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow.keras.layers as layers
+import tensorflow_addons as tfa
 from param import *
 import numpy as np
 from utils import *
@@ -14,7 +15,7 @@ def down_sample(filters, size, apply_bn=True):
         tf.keras.layers.Conv1D(filters, size, strides=1, padding='same',
                                kernel_initializer=initializer, use_bias=False))
     if apply_bn:
-        result.add(tf.keras.layers.BatchNormalization())
+        result.add(tfa.layers.InstanceNormalization())
     result.add(tf.keras.layers.LeakyReLU())
     return result
 
@@ -29,7 +30,7 @@ def up_sample(filters, size, apply_dropout=False):
                                         kernel_initializer=initializer,
                                         use_bias=False))
 
-    result.add(tf.keras.layers.BatchNormalization())
+    result.add(result.add(tfa.layers.InstanceNormalization()))
 
     if apply_dropout:
         result.add(tf.keras.layers.Dropout(0.5))
@@ -119,8 +120,8 @@ def make_discriminator():
     conv = tf.keras.layers.Conv1D(512, 4, strides=1,
                                   kernel_initializer=initializer,
                                   use_bias=False)(zero_pad1)  # (batch_size, 31, 31, 512)
-    batchnorm1 = tf.keras.layers.BatchNormalization()(conv)
-    leaky_relu = tf.keras.layers.LeakyReLU()(batchnorm1)
+    instanceNorm = tfa.layers.InstanceNormalization()(conv)
+    leaky_relu = tf.keras.layers.LeakyReLU()(instanceNorm)
     zero_pad2 = tf.keras.layers.ZeroPadding1D()(leaky_relu)  # (batch_size, 33, 33, 512)
     last = tf.keras.layers.Conv1D(1, 4, strides=1,
                                   kernel_initializer=initializer)(zero_pad2)  # (batch_size, 30, 30, 1)
