@@ -1,7 +1,11 @@
 import time
 import datetime
 from utils import *
+<<<<<<< HEAD
 from CycleGAN import *
+=======
+from Pix2Pix1D import *
+>>>>>>> 7515c7a591a233706ffb267db55eabeec60d0593
 import os
 
 log_dir = "logs/"
