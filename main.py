@@ -17,5 +17,6 @@ target_train_ds, target_test_ds, target_val_ds = gen_dataset_from_dict(target_di
 
 generator = make_generator()
 discriminator = make_discriminator()
+classifier = make_classifier_model()
 fit(source_train_ds, target_train_ds,
-    generator, discriminator, EPOCHS)
+    generator, discriminator, classifier, EPOCHS)

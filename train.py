@@ -1,11 +1,8 @@
 import time
 import datetime
 from utils import *
-<<<<<<< HEAD
 from CycleGAN import *
-=======
 from Pix2Pix1D import *
->>>>>>> 7515c7a591a233706ffb267db55eabeec60d0593
 import os
 
 log_dir = "logs/"
@@ -15,9 +12,9 @@ summary_writer = tf.summary.create_file_writer(
 
 
 @tf.function
-def train_step(source_train_batch, target_train_batch,
-               generator, discriminator,
-               epoch):
+def generator_train_step(source_train_batch, target_train_batch,
+                         generator, discriminator,
+                         epoch):
     xs, ys = get_data_from_batch(source_train_batch)
     xt, yt = get_data_from_batch(target_train_batch)
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
@@ -45,8 +42,26 @@ def train_step(source_train_batch, target_train_batch,
         tf.summary.scalar('disc_loss', disc_loss, step=epoch*BATCH_SIZE // 1000)
 
 
+def classify_train_step(generator, classifier,
+                        source_batch, target_batch):
+    xs, ys = get_data_from_batch(source_batch)
+    xt, yt = get_data_from_batch(target_batch)
+    with tf.GradientTape() as tape:
+        prediction = classifier(xt, training=True)
+        classify_loss = classifier_loss(prediction, yt)
+
+        generated_target = generator(xs, training=False)
+        prediction_fake = classifier(generated_target, training=True)
+        classify_loss += classifier_loss(prediction_fake, ys)
+
+        classify_gradient = tape.gradient(classify_loss, classifier.trainable_variables)
+        classifier_optimizer.apply_gradients(zip(classify_gradient,
+                                                 classifier.trainable_variables))
+
+
 def fit(source_train_ds, target_train_ds,
         generator, discriminator,
+        classifier,
         epochs):
     for epoch in range(epochs):
         start = time.time()
@@ -59,5 +74,14 @@ def fit(source_train_ds, target_train_ds,
                     start = time.time()
                     train_epoch(generator, source_batch, target_batch)
                     print(f"Step: {epoch* BATCH_SIZE // 1000}k")
-                train_step(source_batch, target_batch,
-                           generator, discriminator, epochs)
+                generator_train_step(source_batch, target_batch,
+                                     generator, discriminator, epochs)
+    for epoch in range(epochs):
+        start = time.time()
+        for source_batch in source_train_ds.as_numpy_iterator():
+            for target_batch in target_train_ds.as_numpy_iterator():
+                classify_train_step(generator, classifier,
+                                    source_batch, target_batch)
+                if (epoch * BATCH_SIZE) % 1000 == 0:
+                    display.clear_output(wait=True)
+                    print(f'Time taken for 1000 epoch is:{time.time()-start:.2f} sec\n')

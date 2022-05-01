@@ -5,6 +5,7 @@ from param import *
 import numpy as np
 from utils import *
 from matplotlib import pyplot as plt
+import ResNet
 from IPython import display
 
 
@@ -38,6 +39,22 @@ def up_sample(filters, size, apply_dropout=False):
     result.add(tf.keras.layers.ReLU())
 
     return result
+
+
+def make_classifier_model():
+    model = tf.keras.Sequential()
+    model.add(layers.Dense(FEATURE_dim*2, input_shape=(36, 1)))
+    model.add(ResNet.ResBlock_up_top(FEATURE_dim*4))
+    model.add(layers.BatchNormalization())
+    model.add(ResNet.ResBlock_Down(FEATURE_dim*8))
+    model.add(layers.BatchNormalization())
+    model.add(ResNet.ResBlock_Down(FEATURE_dim*4))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dense(CLASSES_NUM, activation='relu'))
+    model.add(layers.LeakyReLU())
+    model.add(layers.Flatten())
+    model.add(layers.Dense(CLASSES_NUM))
+    return model
 
 
 def make_generator():
@@ -138,8 +155,16 @@ def discriminator_loss(disc_real_output, disc_generated_output):
     return total_disc_loss
 
 
+cat_cross_entropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+
+
+def classifier_loss(prediction, label):
+    return cat_cross_entropy(label, prediction)
+
+
 generator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
 discriminator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
+classifier_optimizer = tf.keras.optimizers.Adagrad(lr)
 
 
 def generate_images(model, test_input, tar):
