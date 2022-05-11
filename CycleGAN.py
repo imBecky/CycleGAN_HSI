@@ -26,12 +26,12 @@ def up_sample(filters, size, apply_dropout=False):
 
     result = tf.keras.Sequential()
     result.add(
-        tf.keras.layers.Conv1DTranspose(filters, size, strides=1,
-                                        padding='same',
-                                        kernel_initializer=initializer,
-                                        use_bias=False))
+        tf.keras.layers.Conv1D(filters, size, strides=1,
+                               padding='same',
+                               kernel_initializer=initializer,
+                               use_bias=False))
 
-    result.add(result.add(tfa.layers.InstanceNormalization()))
+    result.add(tfa.layers.InstanceNormalization())
 
     if apply_dropout:
         result.add(tf.keras.layers.Dropout(0.5))
@@ -43,14 +43,16 @@ def up_sample(filters, size, apply_dropout=False):
 
 def make_classifier_model():
     model = tf.keras.Sequential()
-    model.add(layers.Dense(FEATURE_dim*2, input_shape=(36, 1)))
-    model.add(ResNet.ResBlock_up_top(FEATURE_dim*4))
+    model.add(layers.Dense(FEATURE_dim * 2, input_shape=(72, 1)))
+    model.add(ResNet.ResBlock_up_top(FEATURE_dim))
+    model.add(layers.Dropout(0.2))
     model.add(layers.BatchNormalization())
-    model.add(ResNet.ResBlock_Down(FEATURE_dim*8))
+    model.add(ResNet.ResBlock_up(FEATURE_dim))
     model.add(layers.BatchNormalization())
-    model.add(ResNet.ResBlock_Down(FEATURE_dim*4))
-    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.3))
     model.add(layers.Dense(CLASSES_NUM, activation='relu'))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
     model.add(layers.Flatten())
     model.add(layers.Dense(CLASSES_NUM))
@@ -59,7 +61,6 @@ def make_classifier_model():
 
 def make_generator():
     inputs = tf.keras.layers.Input(shape=[72, 1])
-
     down_stack = [
         down_sample(64, 4, apply_bn=False),  # (batch_size, 128, 128, 64)
         down_sample(128, 4),  # (batch_size, 64, 64, 128)
@@ -70,7 +71,6 @@ def make_generator():
         down_sample(512, 4),  # (batch_size, 2, 2, 512)
         down_sample(512, 4),  # (batch_size, 1, 1, 512)
     ]
-
     up_stack = [
         up_sample(512, 4, apply_dropout=True),
         up_sample(512, 4, apply_dropout=True),
@@ -81,29 +81,23 @@ def make_generator():
         up_sample(64, 4),
     ]
     initializer = tf.random_normal_initializer(0., 0.02)
-    last = tf.keras.layers.Conv1DTranspose(1, 4,
-                                           strides=1,
-                                           padding='same',
-                                           kernel_initializer=initializer,
-                                           activation='tanh')
-
+    last = tf.keras.layers.Conv1D(1, 4,
+                                  strides=1,
+                                  padding='same',
+                                  kernel_initializer=initializer,
+                                  activation='tanh')
     x = inputs
-
     # Downsampling through the model
     skips = []
     for down in down_stack:
         x = down(x)
         skips.append(x)
-
     skips = reversed(skips[:-1])
-
     # Upsampling and establishing the skip connections
     for up, skip in zip(up_stack, skips):
         x = up(x)
         x = tf.keras.layers.Concatenate()([x, skip])
-
     x = last(x)
-
     return tf.keras.Model(inputs=inputs, outputs=x)
 
 
@@ -112,23 +106,17 @@ loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
 def generator_loss(disc_generated_output, gen_output, target):
     gan_loss = loss_object(tf.ones_like(disc_generated_output), disc_generated_output)
-
     # Mean absolute error
     l1_loss = tf.reduce_mean(tf.abs(target - gen_output))
-
     total_gen_loss = gan_loss + (LAMBDA * l1_loss)
-
     return total_gen_loss, gan_loss, l1_loss
 
 
 def make_discriminator():
     initializer = tf.random_normal_initializer(0., 0.02)
-
     inp = tf.keras.layers.Input(shape=[72, 1], name='input_spectral')
     tar = tf.keras.layers.Input(shape=[72, 1], name='target_spectral')
-
     x = tf.keras.layers.concatenate([inp, tar])  # (batch_size, 256, 256, channels*2)
-
     down1 = down_sample(64, 4, False)(x)  # (batch_size, 128, 128, 64)
     down2 = down_sample(128, 4)(down1)  # (batch_size, 64, 64, 128)
     down3 = down_sample(256, 4)(down2)  # (batch_size, 32, 32, 256)
@@ -164,7 +152,7 @@ def classifier_loss(prediction, label):
 
 generator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
 discriminator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
-classifier_optimizer = tf.keras.optimizers.Adagrad(lr)
+classifier_optimizer = tf.keras.optimizers.Adagrad(2e-4)
 
 
 def generate_images(model, test_input, tar):

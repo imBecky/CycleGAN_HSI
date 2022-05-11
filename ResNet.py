@@ -143,7 +143,7 @@ class bottle_neck(tf.keras.layers.Layer):
                                        strides=1,
                                        padding='same',
                                        use_bias=False)
-        self.conv_trans = layers.Conv1DTranspose(filters=output_channels,
+        self.conv_trans = layers.Conv1D(filters=output_channels,
                                                  kernel_size=1,
                                                  strides=1,
                                                  padding='same',

@@ -61,11 +61,13 @@ def calculate_acc(target_test_ds,
     target_batch = target_test_ds.shuffle(BUFFER_SIZE).as_numpy_iterator().next()
     target_data, target_label = get_data_from_batch(target_batch)
     prediction_t = classifier(target_data, training=False)
-    accuracy_t = tf.metrics.Accuracy()
+    accuracy_t = tf.metrics.Accuracy(target_label, prediction_t)
+    acc = accuracy_t.result()
     accuracy_t.update_state(y_true=target_label,
                             y_pred=prediction_t)
     print('Target accuracy for epoch {} is'.format(epoch + 1),
           '{}%'.format(accuracy_t.result().numpy() * 100))
+    return acc
 
 
 def plot_acc_loss(acc, gen_loss, disc_loss, cls_loss,

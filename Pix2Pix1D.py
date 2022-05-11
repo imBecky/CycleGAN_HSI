@@ -24,10 +24,10 @@ def up_sample(filters, size, apply_dropout=False):
 
     result = tf.keras.Sequential()
     result.add(
-        tf.keras.layers.Conv1DTranspose(filters, size, strides=1,
-                                        padding='same',
-                                        kernel_initializer=initializer,
-                                        use_bias=False))
+        tf.keras.layers.Conv1D(filters, size, strides=1,
+                               padding='same',
+                               kernel_initializer=initializer,
+                               use_bias=False))
 
     result.add(tf.keras.layers.BatchNormalization())
 
@@ -63,11 +63,11 @@ def make_generator():
         up_sample(64, 4),
     ]
     initializer = tf.random_normal_initializer(0., 0.02)
-    last = tf.keras.layers.Conv1DTranspose(1, 4,
-                                           strides=1,
-                                           padding='same',
-                                           kernel_initializer=initializer,
-                                           activation='tanh')
+    last = tf.keras.layers.Conv1D(1, 4,
+                                  strides=1,
+                                  padding='same',
+                                  kernel_initializer=initializer,
+                                  activation='tanh')
 
     x = inputs
 
