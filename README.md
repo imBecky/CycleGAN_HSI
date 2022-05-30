@@ -1,8 +1,11 @@
-# Pix2Pix1D_HSI
-<<<<<<< HEAD
-Pix2Pix(1 dimensional version) for hyperspectral image in TensorFlow 2.*
+# CycleGAN on Hyperspectral Images
 
-<div style="color:red;">Unfinished!</div>
-=======
-Pix2Pix(1 dimensional version) for hyperspectral image classification in TensorFlow 2.*
->>>>>>> 7515c7a591a233706ffb267db55eabeec60d0593
+Implementation on Tensorflow 2.*
+
+This repository also include Pix2Pix Models.
+
+Only used spectral informations, and the dataset is not offered, please use your own dataset or find one from sites as follows:
+
+http://www.ehu.eus/ccwintco/index.php/Hyperspectral_Remote_Sensing_Scenes
+
+http://lesun.weebly.com/hyperspectral-data-set.html
